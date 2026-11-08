@@ -19,7 +19,7 @@ class BahasaTest(unittest.TestCase):
         self.assertTrue(heuristik_id(t))
     def test_bukti_kurang_lolos(self):
         # Sesuai SPEC.md v0.2.0 D: id < 3 dan en < 3 harus lulus (bukti kurang)
-        t = 'SSH ke pc-a menggunakan alamat: `100.91.142.6` Pemilah berjalan di port: `20129`'
+        t = 'SSH ke server-a menggunakan alamat: `100.64.0.10` Proxy berjalan di port: `8080`'
         # Kata id: di, menggunakan (tidak masuk ID_WORDS), port, berjalan (tidak), ke, alamat, pemilah, pc-a (hanya "di" yg cocok)
         # Kata en: - (tidak ada, selain "port"?)
         # len(kata) > 5, n_id=1, n_en=0 < 3 --> lulus
