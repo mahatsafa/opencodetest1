@@ -34,10 +34,12 @@ FIELD_DIIZINKAN = {
     "harus_baca",
     "tidak_boleh_tool",
     "maks_kata",
+    "harus_ada_kode",
+    "tidak_boleh_kode",
 }
 
 POLA_ID = re.compile(r"[a-z0-9-]{1,%d}" % PANJANG_MAKS_ID)
-DAFTAR_REGEX = ("harus_ada", "tidak_boleh", "harus_baca")
+DAFTAR_REGEX = ("harus_ada", "tidak_boleh", "harus_baca", "harus_ada_kode", "tidak_boleh_kode")
 
 _regex_cache: dict[str, re.Pattern[str]] = {}
 

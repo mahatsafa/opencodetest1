@@ -39,6 +39,42 @@ def _cocok(teks: str, pola: str) -> bool:
     return re.search(pola, teks) is not None
 
 
+def blok_kode(teks: str) -> list[str]:
+    """Isi semua blok kode berpagar tiga backtick yang DITUTUP; blok tanpa penutup diabaikan."""
+    hasil: list[str] = []
+    idx = 0
+    while True:
+        buka = re.search(r"(^|\n)```[^\n]*\n", teks[idx:])
+        if not buka:
+            break
+        mulai = idx + buka.end()
+        tutup = re.search(r"(^|\n)```", teks[mulai:])
+        if not tutup:
+            break
+        akhir = mulai + tutup.start()
+        hasil.append(teks[mulai:akhir])
+        idx = mulai + tutup.end()
+    return hasil
+
+
+def _periksa_kode(soal: dict, teks: str) -> list[dict]:
+    """harus_ada_kode / tidak_boleh_kode hanya pada gabungan isi blok kode."""
+    blok = blok_kode(teks)
+    isi = "\n".join(blok) if blok else None
+    daftar: list[dict] = []
+    for indeks, pola in enumerate(soal.get("harus_ada_kode", []) or [], start=1):
+        cocok = isi is not None and _cocok(isi, pola)
+        daftar.append(pemeriksaan(
+            f"harus_ada_kode[{indeks}]", cocok,
+            f"regex {pola!r} {'cocok' if cocok else 'tidak cocok'} di blok kode"))
+    for indeks, pola in enumerate(soal.get("tidak_boleh_kode", []) or [], start=1):
+        cocok = isi is not None and _cocok(isi, pola)
+        daftar.append(pemeriksaan(
+            f"tidak_boleh_kode[{indeks}]", not cocok,
+            f"regex terlarang {pola!r} {'ditemukan' if cocok else 'tidak ditemukan'} di blok kode"))
+    return daftar
+
+
 def nilai(soal: dict, hasil) -> list[dict]:
     """Nilai satu hasil; kembalikan daftar pemeriksaan {nama, lulus, alasan}."""
     daftar: list[dict] = []
@@ -75,6 +111,8 @@ def nilai(soal: dict, hasil) -> list[dict]:
                 f"regex terlarang {pola!r} {'ditemukan' if cocok else 'tidak ditemukan'}",
             )
         )
+
+    daftar.extend(_periksa_kode(soal, teks))
 
     if soal.get("bahasa") == "id":
         terdeteksi = heuristik_id(teks)
