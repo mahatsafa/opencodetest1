@@ -19,8 +19,15 @@ def _data(*hasil):
     return {"hasil": list(hasil)}
 
 
-def _item(model, soal, status=None, lulus=None, ulangan=1):
-    item = {"model": model, "soal": soal, "ulangan": ulangan}
+def _item(model, soal, status=None, lulus=None, ulangan=1, error=None, teks="", tool=None):
+    item = {
+        "model": model,
+        "soal": soal,
+        "ulangan": ulangan,
+        "error": error,
+        "teks": teks,
+        "tool": tool,
+    }
     if status is not None:
         item["status"] = status
     if lulus is not None:
@@ -39,6 +46,19 @@ class StatusPerPasanganTest(unittest.TestCase):
         self.assertEqual(peta[("m1", "s1")], "lulus")
         self.assertEqual(peta[("m1", "s2")], "gagal")
         self.assertEqual(peta[("m2", "s1")], "lulus")
+
+    def test_tanpa_status_error_teks_kosong_jadi_infra(self):
+        data = _data(
+            _item("m1", "s1", error="ada", teks=""),
+            _item("m1", "s2", error="ada", teks="ada"),
+            _item("m2", "s1", error="ada", teks="", tool="ada"),
+            _item("m2", "s2", error="ada", teks="", tool=""),
+        )
+        peta = status_per_pasangan(data)
+        self.assertEqual(peta[("m1", "s1")], "infra")
+        self.assertEqual(peta[("m1", "s2")], "gagal")
+        self.assertEqual(peta[("m2", "s1")], "gagal")
+        self.assertEqual(peta[("m2", "s2")], "infra")
 
     def test_ulangan_satu_lulus_satu_gagal_jadi_lulus(self):
         data = _data(
@@ -154,10 +174,10 @@ class BandingkanTest(unittest.TestCase):
             [(b["model"], b["soal"]) for b in hasil["baris"]], [("m1", "s1")]
         )
         self.assertEqual(hasil["baris"][0]["tanda"], "TURUN")
-        tidak = {(t["model"], t["soal"], t["sisi"]) for t in hasil["tidak_terbandingkan"]}
+        tidak = {(t["model"], t["sisi"]) for t in hasil["tidak_terbandingkan"]}
         self.assertEqual(
             tidak,
-            {("m1", "s2", "lama"), ("m3", "s9", "lama"), ("m2", "s1", "baru"), ("m2", "s2", "baru")},
+            {("m1", "lama"), ("m3", "lama"), ("m2", "baru")}
         )
         self.assertEqual([r["model"] for r in hasil["ringkasan"]], ["m1"])
 

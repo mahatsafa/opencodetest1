@@ -33,6 +33,11 @@ def _status_satu(item: dict) -> str:
     st = item.get("status")
     if st in ("lulus", "gagal", "infra"):
         return st
+    error = item.get("error")
+    teks = item.get("teks", "").strip()
+    tool = item.get("tool")
+    if error and not teks and not tool:
+        return "infra"
     return "lulus" if item.get("lulus") else "gagal"
 
 
@@ -133,38 +138,49 @@ def ada_turun(hasil: dict) -> bool:
 
 def format_teks(hasil: dict) -> str:
     """Tabel teks: perbandingan, ringkasan per model, tidak terbandingkan."""
+    baris = hasil["baris"]
+    lebar_model = max([8] + [len(item["model"]) for item in baris])
+    lebar_soal = max([8] + [len(item["soal"]) for item in baris])
     baris_tabel = [
-        f"{'Model':<16} {'Soal':<16} {'Lama':<8} {'Baru':<8} Tanda",
-        f"{'-' * 16} {'-' * 16} {'-' * 8} {'-' * 8} -----",
+        f"{'Model':<{lebar_model}} {'Soal':<{lebar_soal}} {'Lama':<8} {'Baru':<8} Tanda",
+        f"{'-' * lebar_model} {'-' * lebar_soal} {'-' * 8} {'-' * 8} -----",
     ]
-    if hasil["baris"]:
-        for item in hasil["baris"]:
-            baris_tabel.append(
-                f"{item['model']:<16} {item['soal']:<16} "
-                f"{item['status_lama']:<8} {item['status_baru']:<8} {item['tanda']}"
-            )
-    else:
+    for item in baris:
+        baris_tabel.append(
+            f"{item['model']:<{lebar_model}} {item['soal']:<{lebar_soal}} "
+            f"{item['status_lama']:<8} {item['status_baru']:<8} {item['tanda']}"
+        )
+    if not baris:
         baris_tabel.append("(tidak ada pasangan yang sama)")
 
+    lebar_ringkas = max([16] + [len(item["model"]) for item in hasil["ringkasan"]])
     ringkas = [
         "",
         "Ringkasan per model",
-        f"{'Model':<16} {'Lulus lama':>10} {'Lulus baru':>10}",
-        f"{'-' * 16} {'-' * 10} {'-' * 10}",
+        f"{'Model':<{lebar_ringkas}} {'Lulus lama':>10} {'Lulus baru':>10}",
+        f"{'-' * lebar_ringkas} {'-' * 10} {'-' * 10}",
     ]
-    if hasil["ringkasan"]:
-        for item in hasil["ringkasan"]:
-            ringkas.append(
-                f"{item['model']:<16} {item['lulus_lama']:>10} {item['lulus_baru']:>10}"
-            )
-    else:
+    for item in hasil["ringkasan"]:
+        ringkas.append(
+            f"{item['model']:<{lebar_ringkas}} {item['lulus_lama']:>10} {item['lulus_baru']:>10}"
+        )
+    if not hasil["ringkasan"]:
         ringkas.append("(kosong)")
 
+    # Model tanpa satu pun pasangan terbandingkan dan semua soalnya di satu sisi -> satu baris ringkas.
+    model_terbanding = {item["model"] for item in baris}
+    per_model: dict[str, list[dict]] = defaultdict(list)
+    for item in hasil.get("tidak_terbandingkan", []):
+        per_model[item["model"]].append(item)
     tidak = ["", "Tidak terbandingkan"]
-    if hasil["tidak_terbandingkan"]:
-        for item in hasil["tidak_terbandingkan"]:
-            tidak.append(f"- {item['model']} / {item['soal']} (hanya di {item['sisi']})")
-    else:
+    for model, items in per_model.items():
+        sisi = {item["sisi"] for item in items}
+        if model not in model_terbanding and len(sisi) == 1:
+            tidak.append(f"- {model}: {len(items)} soal hanya di {items[0]['sisi']}")
+        else:
+            for item in items:
+                tidak.append(f"- {model} / {item['soal']} (hanya di {item['sisi']})")
+    if not per_model:
         tidak.append("(tidak ada)")
 
     return "\n".join(baris_tabel + ringkas + tidak)
