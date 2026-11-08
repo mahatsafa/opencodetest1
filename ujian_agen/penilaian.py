@@ -171,3 +171,22 @@ def nilai(soal: dict, hasil) -> list[dict]:
 
 def lulus(pemeriksaan_list: list[dict]) -> bool:
     return all(item["lulus"] for item in pemeriksaan_list)
+
+
+def status(soal: dict, hasil: object, pemeriksaan_list: list[dict]) -> str:
+    """Tentukan status hasil: 'lulus' | 'gagal' | 'infra'."""
+    if isinstance(hasil, dict):
+        error = hasil.get("error")
+        teks = hasil.get("teks", "")
+        tool = hasil.get("tool")
+    else:
+        error = getattr(hasil, "error", None)
+        teks = getattr(hasil, "teks", "")
+        tool = getattr(hasil, "tool", None)
+
+    if error and not (teks or "").strip() and not tool:
+        return "infra"
+    if lulus(pemeriksaan_list):
+        return "lulus"
+    return "gagal"
+

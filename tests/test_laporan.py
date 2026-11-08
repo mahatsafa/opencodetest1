@@ -81,7 +81,7 @@ class MarkdownTest(unittest.TestCase):
     def test_isi_laporan(self):
         md = buat_markdown(DATA)
         self.assertIn("# Laporan ujian-agen", md)
-        self.assertIn("| Model | Lulus/Total | % |", md)
+        self.assertIn("| Model | Lulus/Total | Infra | % |", md)
         self.assertIn("| `m1` | 1/2 | 50.0 | 2.00 | 150 | 15 |", md)
         self.assertIn("harus_ada[1]", md)
         self.assertIn("tidak cocok", md)

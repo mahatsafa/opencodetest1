@@ -9,8 +9,15 @@ def _sel(nilai: object) -> str:
     return str(nilai).replace("|", "\\|").replace("\n", " ")
 
 
+def _status_hasil(h: dict) -> str:
+    st = h.get("status")
+    if st in ("lulus", "gagal", "infra"):
+        return st
+    return "lulus" if h.get("lulus") else "gagal"
+
+
 def ringkas_model(data: dict) -> list[dict]:
-    """Agregasi per model: lulus/total, persen, rata-rata detik, token."""
+    """Agregasi per model: lulus/total, infra, persen, rata-rata detik, token."""
     urutan = list(data.get("model", []) or [])
     hasil = data.get("hasil", []) or []
     for item in hasil:
@@ -22,14 +29,19 @@ def ringkas_model(data: dict) -> list[dict]:
     for model in urutan:
         milik = [h for h in hasil if h.get("model") == model]
         total = len(milik)
-        lulus = sum(1 for h in milik if h.get("lulus"))
+        st_list = [_status_hasil(h) for h in milik]
+        lulus = sum(1 for st in st_list if st == "lulus")
+        infra = sum(1 for st in st_list if st == "infra")
+        efektif = total - infra
+        persen = (100.0 * lulus / efektif) if efektif > 0 else None
         detik = sum(float(h.get("durasi") or 0.0) for h in milik)
         ringkasan.append(
             {
                 "model": model,
                 "lulus": lulus,
                 "total": total,
-                "persen": (100.0 * lulus / total) if total else 0.0,
+                "infra": infra,
+                "persen": persen,
                 "rata_detik": (detik / total) if total else 0.0,
                 "token_in": sum(int(h.get("token_in") or 0) for h in milik),
                 "token_out": sum(int(h.get("token_out") or 0) for h in milik),
@@ -41,15 +53,19 @@ def ringkas_model(data: dict) -> list[dict]:
 def tabel_ringkas(data: dict) -> str:
     """Tabel teks polos untuk dicetak ke terminal."""
     baris = [
-        f"{'Model':<28} {'Lulus/Total':>12} {'%':>7} {'Rata2 dtk':>10} "
+        f"{'Model':<28} {'Lulus/Total':>12} {'Infra':>6} {'%':>7} {'Rata2 dtk':>10} "
         f"{'Token in':>12} {'Token out':>12}"
     ]
-    baris.append("-" * 86)
+    baris.append("-" * 93)
     for r in ringkas_model(data):
+        persen_str = (
+            f"{r['persen']:>7.1f}" if r["persen"] is not None else f"{'-':>7}"
+        )
         baris.append(
             f"{str(r['model']):<28} "
             f"{str(r['lulus']) + '/' + str(r['total']):>12} "
-            f"{r['persen']:>7.1f} "
+            f"{r['infra']:>6} "
+            f"{persen_str} "
             f"{r['rata_detik']:>10.2f} "
             f"{r['token_in']:>12} "
             f"{r['token_out']:>12}"
@@ -81,13 +97,16 @@ def buat_markdown(data: dict) -> str:
     baris.append("## Ringkasan model")
     baris.append("")
     baris.append(
-        "| Model | Lulus/Total | % | Rata-rata detik | Token masuk | Token keluar |"
+        "| Model | Lulus/Total | Infra | % | Rata-rata detik | Token masuk | Token keluar |"
     )
-    baris.append("|---|---:|---:|---:|---:|---:|")
+    baris.append("|---|---:|---:|---:|---:|---:|---:|")
     for r in ringkas_model(data):
+        persen_str = (
+            f"{r['persen']:.1f}" if r["persen"] is not None else "-"
+        )
         baris.append(
             f"| `{_sel(r['model'])}` | {r['lulus']}/{r['total']} | "
-            f"{r['persen']:.1f} | {r['rata_detik']:.2f} | "
+            f"{r['infra']} | {persen_str} | {r['rata_detik']:.2f} | "
             f"{r['token_in']} | {r['token_out']} |"
         )
     baris.append("")
@@ -110,7 +129,7 @@ def buat_markdown(data: dict) -> str:
             pemeriksaan_gagal = [
                 p for p in item.get("pemeriksaan", []) or [] if not p.get("lulus")
             ]
-            if not pemeriksaan_gagal:
+            if not pemeriksaan_gagal and item.get("status") != "infra":
                 baris.append("- `lulus` bernilai salah (tanpa rincian pemeriksaan)")
             for p in pemeriksaan_gagal:
                 baris.append(

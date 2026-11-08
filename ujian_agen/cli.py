@@ -12,7 +12,7 @@ from pathlib import Path
 from . import __version__
 from .batas import MAKS_MODEL, MAKS_PARALEL, MAKS_ULANG, MAKS_WAKTU
 from .laporan import tabel_ringkas, tulis_markdown
-from .penilaian import lulus, nilai
+from .penilaian import lulus, nilai, status
 from .runner import Hasil, jalankan_opencode
 from .soal import SoalError, muat_soal
 
@@ -99,11 +99,13 @@ def _satu_hasil(soal: dict, model: str, ulangan: int, args, runner) -> dict:
     except Exception as exc:  # runner eksternal tidak boleh menjatuhkan seluruh ujian
         hasil = Hasil(error=f"runner gagal: {type(exc).__name__}: {exc}")
     pemeriksaan = nilai(soal, hasil)
+    st = status(soal, hasil, pemeriksaan)
     return {
         "model": model,
         "soal": soal["id"],
         "ulangan": ulangan,
         "lulus": lulus(pemeriksaan),
+        "status": st,
         "pemeriksaan": pemeriksaan,
         **hasil.ke_dict(),
     }
@@ -182,8 +184,8 @@ def _perintah_jalankan(args, runner=None) -> int:
     print(f"JSON : {path_json}")
     print(f"MD   : {path_md}")
 
-    semua_lulus = all(h["lulus"] for h in hasil_list)
-    return 0 if semua_lulus else 1
+    semua_ok = all(h.get("status") not in ("gagal", "infra") for h in hasil_list)
+    return 0 if semua_ok else 1
 
 
 def _perintah_periksa(args) -> int:
@@ -218,7 +220,11 @@ def _perintah_laporan(args) -> int:
     print(tabel_ringkas(data))
     print()
     print(f"MD: {tujuan}")
-    return 0 if all(h.get("lulus") for h in data.get("hasil", [])) else 1
+    semua_ok = all(
+        (h.get("status") or ("lulus" if h.get("lulus") else "gagal")) not in ("gagal", "infra")
+        for h in data.get("hasil", [])
+    )
+    return 0 if semua_ok else 1
 
 
 def main(argv: list[str] | None = None, runner=None) -> int:
