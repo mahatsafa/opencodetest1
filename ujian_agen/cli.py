@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 from . import __version__
+from .bandingkan import BandingkanError, ada_turun, bandingkan, format_teks, muat
 from .batas import MAKS_MODEL, MAKS_PARALEL, MAKS_ULANG, MAKS_WAKTU
 from .laporan import tabel_ringkas, tulis_markdown
 from .penilaian import lulus, nilai, status
@@ -53,6 +54,12 @@ def _argumen() -> argparse.ArgumentParser:
 
     p_laporan = sub.add_parser("laporan", help="buat ulang laporan markdown")
     p_laporan.add_argument("hasil", help="berkas hasil JSON")
+
+    p_banding = sub.add_parser(
+        "bandingkan", help="bandingkan dua berkas hasil JSON"
+    )
+    p_banding.add_argument("lama", metavar="LAMA.json", help="hasil lama")
+    p_banding.add_argument("baru", metavar="BARU.json", help="hasil baru")
     return parser
 
 
@@ -227,6 +234,17 @@ def _perintah_laporan(args) -> int:
     return 0 if semua_ok else 1
 
 
+def _perintah_bandingkan(args) -> int:
+    try:
+        data_lama = muat(args.lama)
+        data_baru = muat(args.baru)
+    except BandingkanError as exc:
+        return _galat(str(exc))
+    hasil = bandingkan(data_lama, data_baru)
+    print(format_teks(hasil))
+    return 1 if ada_turun(hasil) else 0
+
+
 def main(argv: list[str] | None = None, runner=None) -> int:
     args = _argumen().parse_args(argv)
     if args.perintah == "jalankan":
@@ -235,4 +253,6 @@ def main(argv: list[str] | None = None, runner=None) -> int:
         return _perintah_periksa(args)
     if args.perintah == "laporan":
         return _perintah_laporan(args)
+    if args.perintah == "bandingkan":
+        return _perintah_bandingkan(args)
     return _galat(f"perintah tidak dikenal: {args.perintah}")
