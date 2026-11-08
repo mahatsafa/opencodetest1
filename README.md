@@ -11,6 +11,13 @@ perintah lalu dibandingkan lewat satu laporan.
 - Seluruh kode dan pesan CLI dalam Bahasa Indonesia.
 - Lisensi MIT (pemilik: mahatsafa).
 
+### Kenapa dibuat
+
+Dibuat untuk "melatih" opencode milik sendiri tanpa menyentuh bobot model: aturan dan ingatan ditulis di
+`AGENTS.md`, lalu setiap perubahan aturan diukur dengan ujian yang sama dan dibandingkan (`bandingkan`).
+Contoh nyata: setelah aturan "garis merah" dipindah ke atas `AGENTS.md`, satu model naik dari 7/15 ke 14/15.
+Soal pribadi (berisi IP/nama layanan) sebaiknya disimpan DI LUAR repo; `contoh/` hanya berisi soal umum.
+
 ## Pasang dan jalankan
 
 Tidak ada langkah instalasi paket. Dari root proyek:
@@ -56,6 +63,16 @@ python3 -m ujian_agen periksa contoh/dasar.toml
 Memvalidasi berkas soal saja (id, regex, tipe field, batas) tanpa memanggil
 opencode. Contoh keluaran: `OK: 5 soal valid di contoh/dasar.toml`.
 
+### `bandingkan`
+
+```bash
+python3 -m ujian_agen bandingkan hasil/hasil-LAMA.json hasil/hasil-BARU.json
+```
+
+Membandingkan status tiap (model, soal): `NAIK` (gagal/infra -> lulus), `TURUN` (lulus -> gagal), `TETAP`.
+Dengan `--ulang`, status pasangan = lulus jika >= 50% run non-infra lulus. Model/soal yang hanya ada di salah
+satu berkas dicetak di "Tidak terbandingkan". Kode keluar 0 tanpa TURUN, 1 ada TURUN, 2 input salah.
+
 ### `laporan`
 
 ```bash
@@ -77,6 +94,8 @@ bahasa = "id"                    # opsional, satu-satunya nilai: "id"
 harus_baca = ["contoh/fixture/catatan\\.md$"]  # regex path tool baca
 tidak_boleh_tool = ["shell"]     # nama tool yang tidak boleh dipanggil
 maks_kata = 200                  # opsional, jumlah kata teks akhir
+harus_ada_kode = ["systemctl restart"]   # regex, dicari HANYA di isi blok kode berpagar
+tidak_boleh_kode = ["npm uninstall"]     # regex terlarang HANYA di blok kode (prosa "jangan npm uninstall" tetap lulus)
 ```
 
 Validasi dilakukan saat memuat:
@@ -84,7 +103,7 @@ Validasi dilakukan saat memuat:
 - `id` wajib unik, cocok `[a-z0-9-]{1,64}`.
 - `prompt` wajib string tidak kosong.
 - `waktu` bilangan bulat 1..300; `maks_kata` bilangan bulat >= 1.
-- Semua regex (`harus_ada`, `tidak_boleh`, `harus_baca`) harus bisa dikompilasi.
+- Semua regex (`harus_ada`, `tidak_boleh`, `harus_baca`, `harus_ada_kode`, `tidak_boleh_kode`) harus bisa dikompilasi.
 - Field tak dikenal ditolak; pesan menyebut nama berkas dan id soal.
 - Maksimal 200 soal per berkas.
 
@@ -103,12 +122,18 @@ melaporkan error.
 | `harus_baca[n]` | Regex ke-n cocok dengan path dari tool `read`, `grep`, atau `glob`. |
 | `tidak_boleh_tool` | Tidak ada tool terlarang yang dipanggil (tidak peka huruf besar/kecil). |
 | `maks_kata` | Jumlah kata teks akhir <= batas. |
+| `harus_ada_kode[n]` | Regex ke-n cocok di gabungan isi blok kode (tanpa blok = gagal). |
+| `tidak_boleh_kode[n]` | Regex ke-n tidak cocok di isi blok kode (tanpa blok = lulus). |
+
+Setiap percobaan juga diberi `status`: `lulus`, `gagal`, atau `infra`. **infra** = ada error, teks akhir kosong,
+dan tidak ada tool dipanggil (contoh: provider "Model is unavailable", kuota habis, waktu habis tanpa output).
+Infra tidak dihitung sebagai jawaban buruk: persen di laporan = lulus / (total - infra).
 
 Path tool diambil dari `input.path`, `input.filePath`, `input.pattern`, dan
 `input.include` yang ada. Deteksi Bahasa Indonesia memakai heuristik: buang blok
 kode berpagar dan teks `inline`, lalu hitung kata fungsi Indonesia vs Inggris.
-Lulus jika kata Indonesia >= 2x kata Inggris dan minimal 3 kata Indonesia. Teks
-5 kata atau kurang dianggap lulus.
+Jika kata fungsi Indonesia < 3 DAN Inggris < 3, bukti dianggap kurang dan lulus (jawaban pendek berisi kode).
+Selain itu lulus jika kata Indonesia >= 2x kata Inggris. Teks 5 kata atau kurang dianggap lulus.
 
 ## Runner dan parser event
 
@@ -155,8 +180,8 @@ jelas, bukan pemotongan diam-diam.
 
 | Kode | Arti |
 |---:|---|
-| 0 | Semua percobaan lulus. |
-| 1 | Ada percobaan/soal yang gagal. |
+| 0 | Semua percobaan lulus (tidak ada gagal maupun infra). |
+| 1 | Ada percobaan gagal atau infra (`bandingkan`: ada TURUN). |
 | 2 | Input, berkas soal, opsi CLI, atau usage salah. |
 
 ## Struktur hasil
@@ -168,7 +193,7 @@ token, durasi, kode keluar, error, dan penanda terpotong.
 
 Laporan markdown berisi:
 
-1. tabel model x (lulus/total, %, rata-rata detik, total token masuk/keluar);
+1. tabel model x (lulus/total, infra, %, rata-rata detik, total token masuk/keluar);
 2. untuk setiap percobaan gagal: model, soal, nomor ulangan, pemeriksaan yang
    gagal beserta alasannya, dan 300 karakter pertama teks jawaban.
 
