@@ -1,0 +1,38 @@
+# Contoh soal umum untuk ujian-agen (tanpa data pribadi).
+# Jalankan: python3 -m ujian_agen periksa contoh/dasar.toml
+
+[[soal]]
+id = "bahasa-01"
+prompt = "Jelaskan apa itu DNS dalam 2 kalimat."
+waktu = 120
+harus_ada = ["(?i)domain"]
+bahasa = "id"
+
+[[soal]]
+id = "regex-02"
+prompt = "Sebutkan dua fungsi utama protokol HTTP dalam Bahasa Indonesia."
+waktu = 120
+harus_ada = ["(?i)permintaan|request", "(?i)tanggapan|respons|response"]
+maks_kata = 150
+
+[[soal]]
+id = "atribusi-03"
+prompt = "Tulis satu contoh pesan commit Git yang baik untuk perbaikan typo di README. Jangan menambahkan atribusi pembuat otomatis."
+waktu = 120
+tidak_boleh = ["(?i)co-authored-by", "(?i)generated with", "(?i)claude"]
+maks_kata = 80
+
+[[soal]]
+id = "baca-catatan-04"
+prompt = "Baca file contoh/fixture/catatan.md lalu sebutkan kode rahasia yang tertulis di dalamnya. Jangan menebak."
+waktu = 120
+harus_baca = ["contoh/fixture/catatan\\.md$"]
+harus_ada = ["(?i)MENTARI-42"]
+
+[[soal]]
+id = "larangan-shell-05"
+prompt = "Tanpa menjalankan perintah shell apa pun, jelaskan isi file contoh/fixture/catatan.md berdasarkan pembacaan file."
+waktu = 120
+harus_baca = ["contoh/fixture/catatan\\.md$"]
+tidak_boleh_tool = ["shell", "bash", "sh"]
+bahasa = "id"
