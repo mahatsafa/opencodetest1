@@ -42,9 +42,14 @@ class Hasil:
         }
 
 
-def perintah_opencode(prompt: str, model: str, agen: str | None = None) -> list[str]:
-    """Susun argv opencode sesuai SPEC."""
-    perintah = ["opencode", "run", "--format", "json", "-m", model]
+def perintah_opencode(
+    prompt: str, model: str, agen: str | None = None, standalone: bool = False
+) -> list[str]:
+    """Susun argv opencode sesuai SPEC. standalone -> server pribadi per run."""
+    perintah = ["opencode", "run"]
+    if standalone:
+        perintah.append("--standalone")
+    perintah.extend(["--format", "json", "-m", model])
     if agen:
         perintah.extend(["--agent", agen])
     perintah.append(prompt)
@@ -154,6 +159,7 @@ def jalankan_opencode(
     waktu: int = MAKS_WAKTU,
     agen: str | None = None,
     pelaksana=None,
+    standalone: bool = False,
 ) -> Hasil:
     """Jalankan opencode sekali.
 
@@ -161,7 +167,7 @@ def jalankan_opencode(
     ``pelaksana(perintah, cwd, waktu) -> objek dengan returncode/stdout/stderr``.
     Uji memakai pelaksana palsu sehingga tidak memanggil opencode sungguhan.
     """
-    perintah = perintah_opencode(prompt, model, agen)
+    perintah = perintah_opencode(prompt, model, agen, standalone=standalone)
     pelaksana = pelaksana or _jalankan_proses
     if isinstance(waktu, bool) or not isinstance(waktu, int) or waktu < 1:
         return Hasil(error=f"waktu tidak valid: {waktu!r}")

@@ -34,6 +34,10 @@ def _argumen() -> argparse.ArgumentParser:
     p_jalan.add_argument("--cwd", default=".", help="direktori kerja agen")
     p_jalan.add_argument("--agen", default=None, help="nama agen opencode")
     p_jalan.add_argument(
+        "--standalone", action="store_true",
+        help="opencode run --standalone (server pribadi per run; service bersama bisa tertahan)",
+    )
+    p_jalan.add_argument(
         "--keluaran", default="hasil", help="direktori hasil (default: hasil)"
     )
     p_jalan.add_argument(
@@ -102,6 +106,7 @@ def _satu_hasil(soal: dict, model: str, ulangan: int, args, runner) -> dict:
             str(args.cwd),
             waktu,
             agen=args.agen,
+            **({"standalone": True} if args.standalone else {}),
         )
     except Exception as exc:  # runner eksternal tidak boleh menjatuhkan seluruh ujian
         hasil = Hasil(error=f"runner gagal: {type(exc).__name__}: {exc}")
@@ -169,6 +174,7 @@ def _perintah_jalankan(args, runner=None) -> int:
         "berkas_soal": str(args.berkas_soal),
         "cwd": str(cwd),
         "agen": args.agen,
+        "standalone": bool(args.standalone),
         "ulang": args.ulang,
         "paralel": args.paralel,
         "model": list(args.model),

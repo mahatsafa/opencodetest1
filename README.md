@@ -54,6 +54,9 @@ python3 -m ujian_agen jalankan SOAL.toml -m 9router/low -m 9router/medium \
 Tabel ringkas berisi model, lulus/total percobaan, persen, rata-rata detik, dan
 total token masuk/keluar. Laporan markdown menambahkan rincian tiap kegagalan.
 
+Opsi `--standalone` menjalankan `opencode run --standalone` (server pribadi per run). Pakai ini untuk ujian
+otomatis: service latar bersama opencode bisa tertahan oleh sesi lain (terbukti 2026-11-08).
+
 ### `periksa`
 
 ```bash

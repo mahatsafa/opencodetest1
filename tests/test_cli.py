@@ -142,6 +142,32 @@ class CliTest(unittest.TestCase):
         self.assertIn("harus_ada[1]", md)
         self.assertIn("jawaban salah", md)
 
+    def test_standalone_diteruskan_ke_runner(self):
+        diterima = {}
+
+        def runner(prompt, model, cwd, waktu, agen=None, **kw):
+            diterima.update(kw)
+            return Hasil(teks="jawaban benar", kode_keluar=0)
+
+        kode, _, _ = self.jalankan(
+            ["jalankan", str(self.soal), "-m", "m1", "--cwd", str(self.dir),
+             "--keluaran", str(self.keluaran), "--standalone"],
+            runner,
+        )
+        self.assertEqual(kode, 0)
+        self.assertEqual(diterima, {"standalone": True})
+        data, _ = self.baca_json()
+        self.assertTrue(data["standalone"])
+
+    def test_tanpa_standalone_tidak_mengirim_argumen(self):
+        palsu = RunnerPalsu()
+        kode, _, _ = self.jalankan(
+            ["jalankan", str(self.soal), "-m", "m1", "--cwd", str(self.dir),
+             "--keluaran", str(self.keluaran)],
+            palsu,
+        )
+        self.assertEqual(kode, 0)
+
     def test_waktu_default(self):
         palsu = RunnerPalsu()
         self.soal.write_text(

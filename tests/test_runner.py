@@ -76,6 +76,12 @@ class UraiTest(unittest.TestCase):
 
 
 class PerintahTest(unittest.TestCase):
+    def test_perintah_standalone(self):
+        self.assertEqual(
+            perintah_opencode("halo", "m", standalone=True),
+            ["opencode", "run", "--standalone", "--format", "json", "-m", "m", "halo"],
+        )
+
     def test_perintah_dasar(self):
         self.assertEqual(
             perintah_opencode("halo", "9router/low"),
