@@ -21,4 +21,7 @@ def heuristik_id(teks:str) -> bool:
         return True
     n_id = sum(1 for w in kata if w in ID_WORDS)
     n_en = sum(1 for w in kata if w in EN_WORDS)
-    return n_id >= 3 and n_id >= 2*n_en
+    # v0.2.0 D: bukti kurang -> lulus jika n_id < 3 dan n_en < 3
+    if n_id < 3 and n_en < 3:
+        return True
+    return n_id >= 2 * n_en and n_id >= 3

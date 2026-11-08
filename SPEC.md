@@ -68,3 +68,37 @@ parser event JSON (pakai contoh di tests/data/contoh-opencode.jsonl), penilaian 
 ## Contoh
 `contoh/dasar.toml` berisi 5 soal umum (tanpa data pribadi): bahasa, regex, larangan atribusi commit, harus baca file
 `contoh/fixture/catatan.md`, larangan shell. README.md (Indonesia) menjelaskan pemakaian. Lisensi MIT (pemilik: mahatsafa).
+
+---
+# v0.2.0 (tambahan; v0.1.0 tetap berlaku)
+
+## A. Pemeriksaan khusus blok kode
+- Field soal baru `harus_ada_kode` dan `tidak_boleh_kode` (list regex). Diterapkan HANYA pada gabungan isi blok kode
+  berpagar (``` ... ```, bahasa apa pun) di teks akhir. Tidak ada blok kode: `harus_ada_kode` gagal, `tidak_boleh_kode` lulus.
+- Fungsi `blok_kode(teks) -> list[str]` (blok yang tidak ditutup diabaikan). Uji: 0, 1, 2 blok, blok tanpa penutup,
+  regex terlarang hanya di prosa (lulus) vs di dalam blok (gagal).
+
+## B. Kegagalan infrastruktur
+- Hasil dianggap `infra` bila ada error DAN teks akhir kosong DAN tidak ada tool yang dipanggil
+  (contoh: "waktu habis" tanpa output, 400 dari provider, kuota habis).
+- Penilaian menambah status per hasil: "lulus" | "gagal" | "infra".
+- Laporan & tabel ringkas: kolom `Infra`, dan `%` dihitung dari (lulus / (total - infra)). Bila semua infra: `%` = "-".
+- Kode keluar CLI tetap: 0 hanya jika tidak ada gagal DAN tidak ada infra.
+
+## C. Perintah bandingkan
+- `python3 -m ujian_agen bandingkan LAMA.json BARU.json` -> per (model, soal) yang ada di keduanya:
+  LAMA status -> BARU status, tandai NAIK (gagal/infra -> lulus), TURUN (lulus -> gagal), TETAP.
+  Ringkasan per model: lulus lama vs baru. Model/soal yang hanya ada di satu berkas disebut di bagian "Tidak terbandingkan".
+- Kode keluar: 0 jika tidak ada TURUN, 1 jika ada TURUN, 2 input salah.
+- Untuk --ulang N: status per (model, soal) = "lulus" jika proporsi lulus >= 0.5 di antara run non-infra.
+
+## D. Heuristik bahasa: bukti kurang = lulus
+- Masalah nyata: jawaban Indonesia yang pendek dan penuh kode ("SSH ke pc-a menggunakan alamat: `...` Pemilah berjalan
+  di port: `20129`") gagal karena kata fungsi Indonesia < 3.
+- Aturan baru: hitung id dan en (kata fungsi) seperti v0.1.0. Jika id < 3 DAN en < 3 -> lulus (bukti kurang).
+  Selain itu lulus jika id >= 2 * en. Teks < 5 kata tetap lulus.
+- Uji: contoh di atas lulus; paragraf Inggris 3 kalimat tetap gagal; campuran Indonesia dominan lulus.
+
+## Versi
+`ujian_agen.__version__ = "0.2.0"`, README diperbarui (bagian baru: kode, infra, bandingkan) + CHANGELOG.md.
+Semua uji lama tetap lulus; tambahkan uji untuk A, B, C.
